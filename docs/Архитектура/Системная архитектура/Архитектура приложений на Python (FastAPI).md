@@ -1,11 +1,12 @@
 Python является высокоуровневым языком программирования с простой и понятной синтаксической структурой, что значительно ускоряет процесс разработки и облегчает поддержку кода. Его читаемость и лаконичность позволяют командам разработчиков быстро вводить новые функции и исправлять ошибки без потери качества. Это особенно важно при создании архитектуры сложных систем, где ясность и поддерживаемость кода имеют первостепенное значение.
 ## Инструментарий
 В качестве пакетных менеджеров используются два основных:
-1. [uv](https://docs.astral.sh/uv/) - рекомендуемый
 
-Стандартный менеджер пакетных зависимостей [pip](https://pip.pypa.io/) используется в случаях, когда проект является точечным, "одноразовым" и не планирется к развитию после окончания разработки.
+1. [uv](https://docs.astral.sh/uv/) - быстрый и эффективный менеджер пакетов для Python (рекомендуемый);
+2. [pip](https://pip.pypa.io/) - стандартный менеджер пакетных зависимостей, используется в случаях, когда проект является точечным, "одноразовым" и не планирется к развитию после окончания разработки.
 
 Основной инструментарий для разработки бэкенд сервисов можно разделить на два условных раздела: для непосредственной работы приложения, а также для помощи в разработке. Прежде, чем приступать к разработке необходимо ознакомиться с основным инструментарием, который представлен ниже:
+
 1. Основные инструменты для использования при реализации сервисов:
     - [FastAPI](https://fastapi.tiangolo.com/)
     - [Pydantic](https://docs.pydantic.dev/latest/)
@@ -127,7 +128,7 @@ Python является высокоуровневым языком програ
 | .env.example                  // Пример файла .env
 | .gitignore                    // Игнорирование git
 | .isort.cfg                    // Параметры сортировки импортов
-| .logging.dev.yaml             // Параметры логгирования при локальной разработки
+| .logging.dev.yaml             // Параметры логгирования при локальной разработке
 | .logging.yaml                 // Параметры логгирования в прод окружении
 | .pre-commit-config.yaml       // Конфигурация прекоммит файлов
 | .python-version               // Версия python, для pyenv
@@ -137,7 +138,7 @@ Python является высокоуровневым языком програ
 | entrypoint.sh                 // Docker entrypoint
 | Makefile                      // Файл вспомогательных команд
 | manage.py                     // Точка входа для cli утилит
-| poetry.lock                   // Устанавливаемые зависимости и их версии
+| uv.lock                       // Устанавливаемые зависимости и их версии
 | pyproject.toml                // Файл конфигурации проекта
 | pytest.ini                    // Конфигурация unit-тестов
 | README.md                     // Описание проекта и предметной области
@@ -168,12 +169,14 @@ README.md                   // Описание проекта
 
 ## Модели (_Models_)
 **Модель БД** — это структурированное описание данных, хранящихся в СУБД. Она определяет, какие таблицы существуют, какие у них поля (колонки), типы данных этих полей, связи между таблицами, ограничения (constraints), индексы и т. д. Модель может включать в себя следующие сущности:
+
 - Таблицы - основные структуры хранения данных;
 - Столбцы - поля в таблицах с различными типами данных, например, VARCHAR, INTEGER, BOOLEAN, TIMESTAMP и другие;
 - Первичный ключ - уникальные идентификаторы записей, должны однозначно определять запись в таблицы и быть минимальными;
-- Внешние ключ - реляционные связи между таблицами;
+- Внешние ключи - реляционные связи между таблицами;
 - Индексы - набор полей, служащий для ускорения поиска и фильтрации (замедляют вставку);
 - Представления, триггеры, функции и схемы - дополнительные элементы модели БД.
+
 **ORM (Object-Relational Mapping)** — это технология, которая позволяет программисту работать с базой данных **через обычные объекты и классы**, а не через SQL-запросы. Необходимо также помнить об объектно-реляционном разрыве:
 
 | В ООП                        | В реляционной БД               |
@@ -210,17 +213,17 @@ class User(Base):
     __tablename__ = 'users'
 
     id: Mapped[uuid.UUID] = mapped_column(UUIDType(binary=False), primary_key=True, default=uuid.uuid7, server_default=func.gen_random_uuid())
-    username: Mapped[str] = mapped_column(String(length=100), unique=True, index=True, nullable=False)
-    email: Mapped[str] = mapped_column(String(length=320), unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(length=1024), nullable=True)
-    first_name: Mapped[str] = mapped_column(String(length=100), nullable=False)
-    second_name: Mapped[str | None] = mapped_column(String(length=100), nullable=True)
-    last_name: Mapped[str] = mapped_column(String(length=100), nullable=False)
-    avatar: Mapped[str | None] = mapped_column(String(250), nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false(), nullable=False)
-    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false(), nullable=False)
-    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false(), nullable=False)
-    login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    username: Mapped[str] = mapped_column(String(length=100), unique=True, index=True) # указание Mapped[<type>] равносильно nullable=False 
+    email: Mapped[str] = mapped_column(String(length=320), unique=True, index=True)
+    hashed_password: Mapped[str | None] = mapped_column(String(length=1024)) # указание Mapped[<type> | None] равносильно nullable=True
+    first_name: Mapped[str] = mapped_column(String(length=100))
+    second_name: Mapped[str | None] = mapped_column(String(length=100))
+    last_name: Mapped[str] = mapped_column(String(length=100))
+    avatar: Mapped[str | None] = mapped_column(String(250))
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    is_superuser: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sa.false())
+    login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     def __repr__(self: Self) -> str:
         return f'User(id={self.id!r}, email={self.email!r}, username={self.username!r})'
@@ -239,7 +242,7 @@ file_template = %%(year)d_%%(month).2d_%%(day).2d_%%(slug)s
 # Добавление в sys.path дирректории
 prepend_sys_path = .
 
-# Разделить файлового пути / или \. По умолчанию тот, который в текущей операционной системе
+# Разделитель файлового пути / или \. По умолчанию тот, который в текущей операционной системе
 version_path_separator = os
 
 # Строка подключения к СУБД, в частности, postgres
@@ -247,7 +250,7 @@ version_path_separator = os
 # options=-csearch_path= - задание дефолтной схемы для соединения, по умолчанию public
 sqlalchemy.url = %(DB_PROVIDER)s://%(DB_USER)s:%(DB_PASSWORD)s@%(DB_HOST)s:%(DB_PORT)s/%(DB_NAME)s?async_fallback=True&options=-csearch_path=%(DB_SCHEMA)s
 ```
-Для работы с SqlAlchemy есть замечательная библиотека [SqlAlchemy-utils](https://sqlalchemy-utils.readthedocs.io/en/latest/).  Однако для корректной работы этой библиотеке, нужно помочь `alembic` генерировать типы из [SqlAlchemy-utils](https://sqlalchemy-utils.readthedocs.io/en/latest/):
+Для работы с SqlAlchemy есть замечательная библиотека [SqlAlchemy-utils](https://sqlalchemy-utils.readthedocs.io/en/latest/).  Однако для корректной работы этой библиотеки, нужно помочь `alembic` генерировать типы из [SqlAlchemy-utils](https://sqlalchemy-utils.readthedocs.io/en/latest/):
 ```python
 import sqlalchemy_utils
 
@@ -370,7 +373,8 @@ uv run alembic upgrade head
 Другие команды можно посмотреть на официальном сайте `alembic`.
 
 ## Схемы (_Schemas_)
-Для реализации базовых [CRUD](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) операция для каждой модели необходимо написать как минимум три дополнительных [pydantic](https://docs.pydantic.dev/latest/) схемы ([DTO](https://en.wikipedia.org/wiki/Data_transfer_object)):
+Для реализации базовых [CRUD](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) операций для каждой модели необходимо написать как минимум три дополнительных [pydantic](https://docs.pydantic.dev/latest/) схемы ([DTO](https://en.wikipedia.org/wiki/Data_transfer_object)):
+
 - **ReadSchema** - схема для чтения данных;
 - **CreateSchema** - схема, которая содержит необходимые поля для создания записи в БД;
 - **UpdateSchema** - схема для обновления полей в БД.
@@ -456,7 +460,7 @@ from .users import UserReadSchema as UserReadSchema
 from .users import UserUpdateSchema as UserUpdateSchema
 ```
 ## Перечисления (_Enums_)
-Типы перечислений записываются в соответствующих файлах `enums.py` в каждом приложении. В конце названия типа должны быть суфикс `Enum`:
+Типы перечислений записываются в соответствующих файлах `enums.py` в каждом приложении. В конце названия типа должен быть суффикс `Enum`:
 ```python
 """
 Модуль, содержащий перечисления приложения auth.
@@ -473,6 +477,7 @@ class PasswordResetStatusEnum(StrEnum):
 	REJECTED = auto()
 ```
 Использовать `ENUM` в PostgreSQL **не рекомендуется в большинстве продакшен-сценариев** по следующим причинам:
+
 - Добавить новое значение в `ENUM` можно только **через команду `ALTER TYPE`**, это **DDL-операция**, которая:
 	- блокирует доступ к типу во время выполнения;
 	- не может быть выполнена внутри транзакции (`BEGIN ... COMMIT`) до PostgreSQL 12.
@@ -501,7 +506,7 @@ class DbCrudRepository(
     __abstract__ = True
 ```
 
-Класс для репозитория сервиса пользователей будет с учетом описанных выше схем DTO будет выглядеть следующим образом:
+Класс для репозитория сервиса пользователей, с учетом описанных выше схем DTO, будет выглядеть следующим образом:
 ```python
 class UserRepository(
 	DbCrudRepository[User, UserReadSchema, UserCreateSchema, UserUpdateSchema]
@@ -517,6 +522,7 @@ class UserRepository(
 ```
 
 В данном случае, класс вместе со стандартными методами из класса `DbCrudRepository` содержит также метод проверки существования пользователя по `username`. Список методов из DbCrudRepository следующий:
+
 - `async def get(self: Self, id: IdType) -> ReadSchemaBaseType` - получение записи по идентификатору;
 - `async def get_or_none(self: Self, id: IdType) -> ReadSchemaBaseType | None: ` - получение записи, если запись не найдена `None`;
 - `async def get_by_ids(self: Self, ids: Sequence[IdType], *, exact: bool = False) -> list[ReadSchemaBaseType]:` - получение записей по списку идентификаторов;
@@ -537,13 +543,14 @@ class UserRepository(
 - `async def create(self: Self, create_object: CreateSchemaBaseType) -> ReadSchemaBaseType:` - создание записи;
 - `async def bulk_create(self: Self, create_objects: list[CreateSchemaBaseType]) -> list[ReadSchemaBaseType]:` - массовое создание записей;
 - `async def update(self: Self, update_object: UpdateSchemaBaseType) -> ReadSchemaBaseType:` - обновление записи в БД;
-- `async def bulk_update(self: Self, update_objects: list[UpdateSchemaBaseType]) -> None:`  - массовое обновление записей в БД по единой транзакцией;
+- `async def bulk_update(self: Self, update_objects: list[UpdateSchemaBaseType]) -> None:`  - массовое обновление записей в БД под единой транзакцией;
 - `async def upsert(self: Self, create_object: CreateSchemaBaseType) -> ReadSchemaBaseType:` - попытка обновить, в случае неуспеха запись создается;
 - `async def delete(self: Self, ids: Sequence[IdType]) -> None:` - удаление записи;
 - `def select(cls) -> sa.Select[tuple[ModelBaseType]]:` - выбор базовой модели и всех полей наследника, если такие есть (_classmethod_).
 #### Остальные репозитории
-Репозитории, которые отвечают за взаимодействие системы с внешним миром могут работать в двух режимах:
-1. [C персистентным соединением соединением](https://ru.wikipedia.org/wiki/Постоянное_HTTP-соединение) - устанавливать соединение и держать его до завершения всех операций соединения.
+Репозитории, которые отвечают за взаимодействие системы с внешним миром, могут работать в двух режимах:
+
+1. [C персистентным соединением](https://ru.wikipedia.org/wiki/Постоянное_HTTP-соединение) - устанавливать соединение и держать его до завершения всех операций соединения.
 ```plantuml
 @startuml
 autonumber
@@ -568,7 +575,9 @@ Client -> Client: Закрываем соединение
 deactivate Client
 @enduml
 ```
-2. С постоянным разрывом соединение
+![Персистентное соединение](https://www.plantuml.com/plantuml/png/SoWkIImgAStDuKeiBSdFAyrDIYtYuYe0YcKcPnOavfKeEETafkQLe0W5fnQLWPHnGUGKTEsWggmKBioxs7HXryM6YzqNDbtOS67hXJqA5nilx0CojbpOSM7lXQr0lEDYFrTYSabcMM99AbGZab5Gqu56JGSQiFzYmuLz5nlXwc5sGoXqcu5sRhtOHC0iskbDIIqkASglXEh431w8MGI3vy9Me4de0UIGcfS2Z2O0)
+
+2. С постоянным разрывом соединения
 ```plantuml
 @startuml
 autonumber
@@ -598,7 +607,9 @@ Client -> Client: Закрываем соединение
 destroy Client
 @enduml
 ```
-Очевидно при любой возможности необходимо использовать первый вариант. В таком случае, репозиторий должен представлять из себя контекстный менеджер, внутри которого будет обеспечиваться все взаимодействие. Пример представлен ниже:
+![С постоянным разрывом соединения](https://www.plantuml.com/plantuml/png/SoWkIImgAStDuKeiBSdFAyrDIYtYuYe0YcKcPnOavfKeEETafkQLe0W5fnQLWPHnsTeg62fSs79XwuMT5nilDbtOT677XQqAjhPS44qAkdPGxLOA5-O1vNTTRBZO3LIr0QXZZyB5nWlxW8mjG4rxBsm5uXqN-xaIaqioon9BKg4Q4IP1RGMQD1seV__5XWlxBZR2bSFS1A7GBGPQkVLY4rTAAffo37T2J2VWJf0dWMOLbnJbLqBrWOF2Q3GeGCvqICrB0IOe0000)
+
+Очевидно, что при любой возможности необходимо использовать первый вариант. В таком случае, репозиторий должен представлять из себя контекстный менеджер, внутри которого будет обеспечиваться все взаимодействие. Пример представлен ниже:
 ```python
 """
 Репозиторий по отправке файлов.
@@ -673,6 +684,7 @@ async with user_repository:
 ```
 ## Сервисы (_Services_)
 **Сервисный слой**  — это архитектурное ядро, где живет _чистая бизнес-логика_ приложения. Сервисы инкапсулируют ключевые правила и процессы: валидацию данных, управление транзакциями, координацию между источниками информации, интеграцию с внешними системами и выполнение сложных вычислительных задач.
+
 **Его главные достоинства — тестируемость и универсальность.** Сервисы легко проверять изолированно, а их независимость от деталей ввода/вывода (HTTP, UI) и конкретных пользовательских сценариев (_User Story_) позволяет гибко переиспользовать их в различных _UseCases_.
 
 В качестве примера рассмотрим UserService, в котором реализована функция для создания пользователя.
@@ -709,6 +721,7 @@ class UserService:
 ```
 
 Как видно, сервис выполняет следующие действия обеспечивая создание пользователя:
+
 - проверку на существования пользователя с _username_;
 - проверка на существование пользователя с _email_;
 - проверяет адекватность пароля и хеширует его с помощью _PasswordService_;
@@ -724,7 +737,7 @@ token = jwt.encode({'key': 'value'}, 'secret', algorithm='HS256')
 jwt.decode(token, 'secret', algorithms=['HS256'])
 # {u'key': u'value'}
 ```
-Казалось бы, API библиотеки достаточно простое и почему бы сразу не использовать эти вызовы в необходимых местах. Однако, у нас возникает ситуация, при которой замена этой библиотеки на что-то другое приведет к необходимости поиска импортов по всему проекту, а также в тестах и велика вероятность что-то пропустить. Чтобы этого избежать, необходимо сделать "обертку" над этой библиотекой, поместив вызов этих функциой в методы сервисного класса:
+Казалось бы, API библиотеки достаточно простое и почему бы сразу не использовать эти вызовы в необходимых местах. Однако, у нас возникает ситуация, при которой замена этой библиотеки на что-то другое приведет к необходимости поиска импортов по всему проекту, а также в тестах и велика вероятность что-то пропустить. Чтобы этого избежать, необходимо сделать "обертку" над этой библиотекой, поместив вызов этих функций в методы сервисного класса:
 ```python
 from typing import Self
 from jose import jwt # единственное место импорта из библиотеки jwt
@@ -741,10 +754,10 @@ class CryptoService:
 	def decode(self: Self, token: str, *, algorithm: str = 'HS256') -> dict:
 		return jwt.decode(token, self.settings.secret_key, algorithms=[algorithm])
 ```
-Использование во всех сервисах _CryptoService_ вместо импорта библиотеки позволит в случае изменения библиотеки поменять имплементацию только в одном месте. Кроме этого, такое использование окажет положительное влияние на процесс тестирования.
+Использование во всех сервисах _CryptoService_, вместо импорта библиотеки, позволит, в случае изменения библиотеки, поменять имплементацию только в одном месте. Кроме этого, такое использование окажет положительное влияние на процесс тестирования. Такой подход называется - **инкапсуляция**.
 ## Варианты использования (_UseCases_)
 
-В отличие от сервисного слоя, который группирует логику по доменным областям. **_UseCase_** — это следующий шаг декомпозиции, фокусирующийся на **одном конкретном бизнес-сценарии**, **полностью изолируя чистую бизнес-логику** от инфраструктуры. Это делает приложение ещё более гибким, тестируемым и понятным, особенно в сложных доменах. UseCase не всегда заменяет сервисный слой, но он поднимает уровень абстракции бизнес-правил на новую ступень.
+В отличие от сервисного слоя, который группирует логику по доменным областям, **_UseCase_** — это следующий шаг декомпозиции, фокусирующийся на **одном конкретном бизнес-сценарии**, **полностью изолируя чистую бизнес-логику** от инфраструктуры. Это делает приложение ещё более гибким, тестируемым и понятным, особенно в сложных доменах. UseCase не всегда заменяет сервисный слой, но он поднимает уровень абстракции бизнес-правил на новую ступень.
 Для примера, реализуем сервис регистрации пользователей:
 
 ```python
@@ -767,7 +780,8 @@ class UserRegisterUseCase:
 		await self.notify_service.notify_register(user)
 		return UserResponseSchema.model_validate(user, from_attributes=True)
 ```
-Создание пользователя (его валидация) это реализация сервисного действия, отсылка уведомления это не часть сервиса по созданию пользователя, это часть пользовательской истории регистрации.
+Создание пользователя (его валидация) - это реализация сервисного действия.
+Отсылка уведомления - это не часть сервиса по созданию пользователя, а часть пользовательской истории регистрации.
 ## Роуты и контроллеры
 Роутеры организуют группу связанных маршрутов. Они нужны для разделения кода по функциональности, упрощение масштабирования больших приложений, повторное использование префиксов, тегов и зависимостей. Также они определяют внешний контракт взаимодействия по API. Пример роута для FastAPI:
 ```python
@@ -797,7 +811,8 @@ async def get_all_users() -> list[UserResponseSchema]:
 #           ^ роутер
 #                    ^ контроллер
 ```
-Связка роута и контроллера представляет внешний контаркт API по которому будет происходить общение с внешними системами, по сути должна содержать следующее:
+Связка роута и контроллера представляет внешний контаркт API по которому будет происходить общение с внешними системами, по сути, она должна содержать следующее:
+
 - путь обращения;
 - _UseCase_, который отражает пользовательскую _UserStory_;
 - параметры запроса (Path, QueryParams, RequestSchema, Headers, etc);
@@ -823,12 +838,15 @@ async def register(
 
 ## Исключения (_Exceptions_)
 Классы ошибок можно разделить на три части:
+
 - Слой приложения - http ошибки со статус кодами:
 	- 4XX - ошибки клиента;
 	- 5XX - ошибки сервера;
 - Слой доменной логики - ошибки бизнес логики;
 - Слой внешних обращений - внешние ошибки, возникающие при обращении к внешним системам.
+
 Наименование также является важной частью, в виду того, что для обозначений классов ошибок можно использовать суффиксы _**Exception**_ и _**Error**_:
+
 - Exception — непредвиденные ошибки, которые возникают в результате работы программы  при неконтролируемых действиях;
 - Error — ошибки бизнес-логики, пользовательские ошибки.
 > PEP8 говорит:
@@ -939,7 +957,7 @@ class ModelAlreadyExistsError(BusinessLogicException):
 
 ```
 
-Чтобы связать эти ошибки с http статусами ошибок необходимо использовать функционал [FastAPI exception handlers](https://fastapi.tiangolo.com/tutorial/handling-errors/):
+Чтобы связать эти ошибки с http статусами ошибок, необходимо использовать функционал [FastAPI exception handlers](https://fastapi.tiangolo.com/tutorial/handling-errors/):
 ```python
 async def business_logic_exception_handler(
     settings: CoreSettingsSchema, request: Request, exception: BusinessLogicException
@@ -1021,6 +1039,7 @@ def use_exceptions_handlers(app: FastAPI, settings: CoreSettingsSchema) -> None:
 *** CompanyNotFoundError \n(бизнес ошибка)
 @endmindmap
 ```
+![Дерево ошибок](https://www.plantuml.com/plantuml/png/bT6nIiDG50RWlKznHiqas0SeQfrKNDnSGdEH2-RSS6yAkfbq4HJxAcamjbHIN-4_R-JngYXqqUty2V_t3tSKojINkUKiJuj1GWVJODc4SEAkx6HyCp55QHtJ9U-WbGeTOIFtM661DLQ4PspmYXVqya3eqKYbiOkVMqsrF4ebyuzIhSUJ_cXs1qb2vyRdDWIbZmnRauszTpwk_F0DuKtkDBGonn8D-hYWsfg6U_kaO1qtPdhD8dlgCdDzvifZD-K_cz_YS5jKyY8Oloqkb5XgkPEAVlEVdKEN5odV_gSsCfnzlS8x)
 
 Кроме этого, если вы однозначно знаете какие ошибки могут возникнуть при обработке данных, рекомендуется писать их явно для генерации документации в _Swagger_ на основе _OpenAPI_ 3.0.
 ```python
@@ -1037,21 +1056,26 @@ def use_exceptions_handlers(app: FastAPI, settings: CoreSettingsSchema) -> None:
 ## Dependency Injection
 
 Dependency Injection (DI, **внедрение зависимостей**) — это паттерн проектирования, который делает код более гибким, тестируемым и поддерживаемым. Вот ключевые причины его использования:
+
 1. Уменьшение связности (Coupling);
 2. Упрощение тестирования;
 3. Гибкость и расширяемость;
 4. Читаемость и прозрачность;
-5. Соблюдение правил [SOLID](https://ru.wikipedia.org/wiki/SOLID_(программирование).
+5. Соблюдение правил [SOLID](https://ru.wikipedia.org/wiki/SOLID_(программирование)).
+
 Хотелось бы DI & IoC-контейнер, который:
+
 - Представляет собой реестр (контейнер) объектов, которыми он управляет
 - Позволяет декларативно конфигурировать объекты и их свойства
 - Код классов не должен зависеть от IoC-фреймворка
 - Берёт на себя:
-     - Управление жизненным циклом объектов: создание, удаление
-     - Управление зависимостями между объектами.
+    - Управление жизненным циклом объектов: создание, удаление
+    - Управление зависимостями между объектами.
+
 В качестве DI фреймворка выбран [Dishka](https://dishka.readthedocs.io/en/stable/). Эта библиотека предоставляет контейнер IoC, который действительно полезен. Если вы устали от бесконечной передачи объектов только для того, чтобы создать другие объекты, только для того, чтобы эти объекты создавали еще больше - вы не одиноки, и у нас есть решение. Не для каждого проекта требуется контейнер IoC, но посмотрите, что мы предлагаем.
-IoC-контейнер - это специальный объект (или фреймворк, предоставляющий такой объект), который предоставляет необходимые объекты в соответствии с правилами внедрения зависимостей и управляет их сроком службы. DI-framework - это другое название для таких фреймворков.
-Прежде, чем читать дальше крайне рекомендуется прочитать документацию DI фреймворка  [Dishka](https://dishka.readthedocs.io/en/stable/).
+**IoC-контейнер** - это специальный объект (или фреймворк, предоставляющий такой объект), который предоставляет необходимые объекты в соответствии с правилами внедрения зависимостей и управляет их сроком службы. **DI-framework** - это другое название для таких фреймворков.
+
+Прежде, чем читать дальше, крайне рекомендуется прочитать документацию DI фреймворка  [Dishka](https://dishka.readthedocs.io/en/stable/).
 
 Давайте опишем провайдер для регистрации пользователя:
 ```python
@@ -1129,6 +1153,8 @@ component Application {
 }
 @enduml
 ```
+![Слоистость приложения](https://www.plantuml.com/plantuml/png/ZSpH2SCW4CRnTwUGRD0a0wHaWvGE8FOU1FL4pq8fxjuIa5n092yAz__uBObKfEoiqEW2Ul0axo5OenKPzF8hf3pAXfaWxaTsNT5JH6jhuUsPO5K9Qk1fU41y6mtoDXpvDDWWO3A4yVFVr4MJc2hHHIQ6bAutNlB6bbV4LRQFzgMPIsrevb3zzgU88XRmh-pi3m00)
+
 Кроме этого, возможность зон обращений можно представить следующей диаграммой:
 ```plantuml
 @startmindmap
@@ -1145,16 +1171,20 @@ component Application {
 ****** Repository 3
 @endmindmap
 ```
+![Зоны обращений](https://www.plantuml.com/plantuml/png/ROz12i9034NtSugiiskzGAKtK3p0q6OHc4v24WlUtc871jJTVs_nu4yUsMBZkcvP4y9LjV2IWwKcHBZ9CyYEXJ1B3PDIJaHuECtPwGC8TxAT5uBXv2x69euMgJY7s0ikwTSDVzpOwxpts5Thehgs1sy0)
+
 ## Sync и Async функции
 
 В современных приложениях на Python, особенно при использовании асинхронного программирования с asyncio, часто возникает необходимость выполнять синхронные (блокирующие) функции в асинхронной среде. Чтобы избежать блокировки основного асинхронного потока выполнения, синхронные функции можно запускать в отдельном пуле потоков (_thread pool_) или процессов (_process pool_).
 
 _ThreadPoolExecutor_ подходит для выполнения блокирующих I/O операций, то есть когда функция ожидает ввода-вывода, например:
+
 - Сетевые запросы к _API_ без асинхронных библиотек.
 - Чтение и запись файлов на диск.
 - Обращение к базам данных без поддержки асинхронности.
 
 Причины использовать _ThreadPoolExecutor_ для _I/O-bound_ задач:
+
 - _GIL (Global Interpreter Lock):_ В Python интерпретатор CPython имеет GIL, который не позволяет нескольким потокам выполнять байт-код одновременно. Однако при I/O операциях потоки освобождают GIL, позволяя другим потокам продолжить выполнение.
 - _Низкие накладные расходы:_ Создание и переключение между потоками дешевле, чем между процессами.
 - _Простота обмена данными:_ Потоки разделяют общую память, что упрощает передачу данных между ними.
@@ -1175,30 +1205,9 @@ async def get_todo_repositories() -> ResultSchema:
 ```python
 # run_in_processpool.py
 
-import asyncio
-import multiprocessing as mp
-from concurrent.futures import ProcessPoolExecutor
-from functools import partial
-from typing import Callable, TypeVar
-
-from typing_extensions import ParamSpec
-
-P = ParamSpec('P')
-R = TypeVar('R')
-
-async def run_in_processpool(fn: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R:
-    """
-    Запуск функции в отдельном процессе.
-    Используем fork в связи с https://github.com/python/cpython/issues/94765.
-    """
-    kwargs_fn = partial(fn, **kwargs)
-    loop = asyncio.get_running_loop()
-    with ProcessPoolExecutor(mp_context=mp.get_context('fork')) as executor:
-        return await loop.run_in_executor(executor, kwargs_fn, *args)
-```
-
-```python
-# run_in_threadpool.py
+"""
+Модуль запуска тяжелых операций в ProcessPoolExecutor.
+"""
 
 import asyncio
 import multiprocessing as mp
@@ -1229,9 +1238,35 @@ async def run_in_processpool(fn: Callable[P, R], *args: P.args, **kwargs: P.kwar
     return await loop.run_in_executor(process_pool, kwargs_fn)
 ```
 
+```python
+# run_in_threadpool.py
+
+"""
+Модель запуска тяжелых операций в ThreadPoolExecutor.
+"""
+
+import asyncio
+from functools import partial
+from typing import Callable, TypeVar
+
+from typing_extensions import ParamSpec
+
+R = TypeVar('R')
+P = ParamSpec('P')
+
+
+async def run_in_threadpool(fn: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R:
+    """
+    Запуск функции в отдельном потоке.
+    """
+    kwargs_fn = partial(fn, *args, **kwargs)
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, kwargs_fn)
+```
+
 ## FastClean Core
 
-В основном все приложения одинаковые и различаются лишь бизнес фукнционалом. Системный функционал и тулинг выноситься в библиотеку, которая обычно называется core. В нашем представлении ядерная библиотека представляется набором системных утилит и приложений и представлена в репозитории [FastClean](https://github.com/Luferov/fast-clean).
+В основном, все приложения одинаковые и различаются лишь бизнес фукнционалом. Системный функционал и тулинг выносится в библиотеку, которая обычно называется core. В нашем представлении, ядерная библиотека представляется набором системных утилит и приложений, и представлена в репозитории [FastClean](https://github.com/Luferov/fast-clean).
 ## API Request и Response схемы
 
 Все API схемы для описания входящих запросов должны быть описаны с помощью `Pydantic` и должны быть отнаследованы от `RequestSchema`, которая показана ниже. Однако, исходящие запросы должны приводиться к нотации `camelCase`, описываться с помощью `Pydantic` моделей и наследоваться от `ResponseSchema`.
@@ -1275,7 +1310,7 @@ RemoteRequestSchema = ResponseSchema
 
 Межсервисное взаимодействие должно обеспечиваться с помощью этих же трансформаций, в следствие чего должны использоваться классы `RemoteResponseSchema` и `RemoteRequestSchema`.
 ## Транзакции
-**Транзакция** — это единица работы с базой данных, состоящая из одного или нескольких операций _SQL_, которые выполняются как одно целое. Транзакции обладают свойствами, известными как _ACID_:
+**Транзакция** — это единица работы с базой данных, состоящая из одной или нескольких операций _SQL_, которые выполняются как одно целое. Транзакции обладают свойствами, известными как _ACID_:
 
 - **Atomicity (Атомарность):** Все операции внутри транзакции выполняются полностью или не выполняются вовсе. Если происходит ошибка, все изменения откатываются.
 - **Consistency (Согласованность):** Транзакции переводят базу данных из одного согласованного состояния в другое, соблюдая все ограничения целостности.
@@ -1294,7 +1329,7 @@ from fast_clean.depends import SessionManagerProtocol
 from ..models import check_list_mark_template
 
 
-class UserRepository:
+class TodoRepository:
     """
     Реализация репозитория для работы со списком выбранного todo листа.
     """
@@ -1316,7 +1351,7 @@ class UserRepository:
             await s.execute(statement)
 	        # Мы все еще находимся в транзакции и она открыта.
 ```
-В виду того, что мы находимся в транзации в момент, когда сессия в _SqlAlchemy_ завершается, поэтому над стандартной сессии пишется обертка, которая в случае, если мы находимся внутри транзакции, создается вложенная транзакция (или возвращает ее же), которая открывается на основе, т.е. по сути вызывается `SAVEPOINT` внутри транзакции. Код сервиса представлен ниже:
+В виду того, что мы находимся в транзакции в момент, когда сессия в _SqlAlchemy_ завершается, поэтому над стандартной сессией пишется обертка, которая, в случае, если мы находимся внутри транзакции, создает вложенную транзакцию (или возвращает ее же), которая открывается на основе текущей транзакции, т.е. по сути вызывается `SAVEPOINT` внутри транзакции. Код сервиса представлен ниже:
 
 ```python
 from contextlib import asynccontextmanager
@@ -1344,7 +1379,7 @@ class TransactionService:
                 await self.session.execute(sa.text('SET CONSTRAINTS ALL IMMEDIATE'))
             yield
 ```
-Если несколько репозиториев нужно объединить в одну транзакцию, то стартовать транзакцию необходимо в в сервисе транзакций:
+Если несколько репозиториев нужно объединить в одну транзакцию, то стартовать транзакцию необходимо в сервисе транзакций:
 ```python
 
 
