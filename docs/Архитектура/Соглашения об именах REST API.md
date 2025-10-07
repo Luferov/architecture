@@ -336,9 +336,9 @@ GET /users?page=1&page_size=30
 ```
 В запросе выше `page` указывает на страницу, а QueryParam `page_size` указывает на количество возвращаемых записей. По сути, такие параметры на стороне сервера преобразуются в следующий SQL запрос:
 ```sql
-select * from users LIMIT (page - 1) * page_size OFFSET page_size
+select * from users LIMIT page_size OFFSET (page - 1) * page_size
 ```
-В виду того, что в *SQL* ключевые для ограничений используются `limit` и `offset`, `page` может быть заменено на `offset` вычисляемое по формуле `offset = (page - 1) * page_size`, а `page_size` заменяется на `limit`, по сути:
+В виду того, что в *SQL* для ограничений используются ключевые слова `limit` и `offset`, `page` может быть заменено на `offset` вычисляемое по формуле `offset = (page - 1) * page_size`, а `page_size` заменяется на `limit`, по сути:
 ```
 GET /users?page=1&page_size=30
 // все равно что
