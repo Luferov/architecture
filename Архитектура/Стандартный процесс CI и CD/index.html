@@ -1,0 +1,946 @@
+
+<!DOCTYPE html>
+
+<html class="no-js" lang="ru">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<link href="https://luferov.github.io/architecture/%D0%90%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0/%D0%A1%D1%82%D0%B0%D0%BD%D0%B4%D0%B0%D1%80%D1%82%D0%BD%D1%8B%D0%B9%20%D0%BF%D1%80%D0%BE%D1%86%D0%B5%D1%81%D1%81%20CI%20%D0%B8%20CD/" rel="canonical"/>
+<link href="../%D0%A1%D0%BE%D0%B3%D0%BB%D0%B0%D1%88%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BE%D0%B1%20%D0%B8%D0%BC%D0%B5%D0%BD%D0%B0%D1%85%20REST%20API/" rel="prev"/>
+<link href="../%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%BD%D0%B0%D1%8F%20%D0%B0%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0/%D0%90%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0%20%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9%20%D0%BD%D0%B0%20Python%20%28FastAPI%29/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.6.15" name="generator"/>
+<title>Стандартный процесс CI и CD - My Own Architecture Style (MoAS)</title>
+<link href="../../assets/stylesheets/main.342714a4.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<link href="../../_theme/style.css" rel="stylesheet"/>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<script>(function() {
+    const customDynamicStyle = document.createElement("style");
+    // We must put it outside of the head and body, since they are replaced by the instant navigation feature in the Material theme
+    document.documentElement.appendChild(customDynamicStyle);
+
+    const TOGGLE_BUTTON_REFERENCE_ELEMENT_NOT_FOUND_WARNING = "[mkdocs-toggle-sidebar-plugin] Reference element for inserting 'toggle_button' not found. This version of the plugin may not be compatible with this version of the theme. Try updating both to the latest version. If that fails, you can open an GitHub issue.";
+
+    const loadBool = (name, default_value) => {
+        const value = localStorage.getItem(`TOGGLE_SIDEBAR_${name}`);
+        if (value == null) {
+            return default_value;
+        } else {
+            return value == "1";
+        }
+    }
+
+    const loadNavigationState = () => loadBool("NAVIGATION", true);
+    const loadTocState = () => loadBool("TOC", true);
+
+    const saveBool = (name, value) => {
+        localStorage.setItem(`TOGGLE_SIDEBAR_${name}`, value ? "1" : "0");
+    }
+
+    const toggleVisibility = (toggleNavigation, toggleTOC) => {
+        let newNavigation = loadNavigationState();
+        let newTOC = loadTocState();
+        
+        if (toggleNavigation) {
+            newNavigation = !newNavigation;
+            saveBool("NAVIGATION", newNavigation);
+        }
+        if (toggleTOC) {
+            newTOC = !newTOC;
+            saveBool("TOC", newTOC);
+        }
+        
+        _setVisibility(newNavigation, newTOC);
+    }
+
+    const _setVisibility = (newNavigation, newTOC) => {
+        console.debug(`Setting new visibility: navigation=${newNavigation}, TOC=${newTOC}`);
+        // combine this into one operation, so that it is more efficient (for toggling both) and easier to code with dynamic CSS generation
+        customDynamicStyle.innerHTML = setCombinedVisibility(newNavigation, newTOC);
+    }
+
+    // START OF INCLUDE
+    // This gets replaced with the definitions of: 
+    // - setCombinedVisibility(showNavigation: bool, showTOC: bool) -> string (dynamic CSS)
+    // - registerKeyboardEventHandler() -> void
+    const setCombinedVisibility = (showNavigation, showTOC) => {
+    // Hide the button when on mobile (and menu us shown as hamburger menu anyways).
+    // The exact max-width is taken from the styling of the 'body > header > nav > a' element
+    
+    let style = `
+.mkdocs-toggle-sidebar-button {
+    cursor: pointer;
+    margin-right: 5px;
+    margin-left: 1rem;
+}
+
+@media screen and (max-width: 76.1875em) {
+    .mkdocs-toggle-sidebar-button {
+        display: none;
+    }
+}
+`;
+// The TOC has a different break point than the navigation.
+// It can be seen on the nav.md-nav--secondary:nth-child(1) element (60em)
+// If the screen is smaller, it is shown in the navigation section if you click the nested hamburger menu
+if (!showTOC) {
+    style += `
+@media screen and (min-width: 60em) {
+    div.md-sidebar.md-sidebar--secondary {
+        display: none;
+    }
+}
+`;
+        }
+        
+    // We always have to show the navigation in mobile view, otherwise the hamburger menu is broken
+    if (!showNavigation) {
+        style += `
+@media screen and (min-width: 76.1875em) {
+    div.md-sidebar.md-sidebar--primary {
+        display: none;
+    }
+}
+`;
+    }
+
+    return style;
+}
+
+const addToggleButton = (toggleNavigation, toggleTOC) => {
+    const toggleBtn = createDefaultToggleButton(toggleNavigation, toggleTOC);
+    toggleBtn.classList.add("md-icon");
+  
+    const titleElement = document.querySelector(".md-header__title");
+    if (titleElement) {
+        titleElement.parentNode.insertBefore(toggleBtn, titleElement.nextSibling);  
+    } else {
+        console.warn(TOGGLE_BUTTON_REFERENCE_ELEMENT_NOT_FOUND_WARNING);
+    }
+}
+
+const registerKeyboardEventHandler = () => {
+    // Custom key handlers: SEE https://squidfunk.github.io/mkdocs-material/setup/setting-up-navigation/?h=key+bind#docsjavascriptsshortcutsjs
+    keyboard$.subscribe(key => {
+        if (key.mode === "global") {
+            if (coreEventListenerLogic(key.type)) {
+                // event handled, stop propagation
+                key.claim();
+            }
+        }
+    });
+}
+
+    // END OF INCLUDE
+
+    // argument: string, returns true if the key was handled and the event should be marked as already handled
+    const coreEventListenerLogic = (keyChar) => {
+        if (keyChar === "t") {
+            toggleVisibility(false, true);
+            return true;
+        } else if (keyChar === "m") {
+            toggleVisibility(true, false);
+            return true;
+        } else if (keyChar === "b") {
+            toggleVisibility(true, true);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    const onPageLoadedAction = () => {
+        console.log("The mkdocs-toggle-sidebar-plugin is installed. It adds the following key bindings:\n T -> toggle table of contents sidebar\n M -> toggle navigation menu sidebar\n B -> toggle both sidebars (TOC and navigation)");
+
+        const toggle_button = "all";
+        if (toggle_button == "none") {
+            // do nothing
+        } else if (toggle_button == "navigation") {
+            addToggleButton(true, false);
+        } else if (toggle_button == "toc") {
+            addToggleButton(false, true);
+        } else if (toggle_button == "all") {
+            addToggleButton(true, true);
+        } else {
+            console.error(`[mkdocs-toggle-sidebar-plugin] Unknown value for toggle_button: '${toggleButtonType}'`);
+        }
+
+        registerKeyboardEventHandler();
+    }
+
+    const createDefaultToggleButton = (toggleNavigation, toggleTOC) => {
+        const toggleBtn = document.createElement("div");
+        toggleBtn.className = "mkdocs-toggle-sidebar-button";
+        toggleBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"></path></svg>`;
+        if (toggleNavigation && toggleTOC) {
+            toggleBtn.title = "Toggle Navigation and Table of Contents";
+        } else if (toggleNavigation) {
+            toggleBtn.title = "Toggle Navigation";
+        } else if (toggleTOC) {
+            toggleBtn.title = "Toggle Table of Contents";
+        }
+        toggleBtn.addEventListener("click", () => toggleVisibility(toggleNavigation, toggleTOC));
+        return toggleBtn;
+    };
+
+    // Export functions that the user can call to modify the state
+    window.MkdocsToggleSidebarPlugin = {
+        setNavigationVisibility: (show) => {
+            saveBool("NAVIGATION", show);
+            _setVisibility(show, loadTocState());
+        },
+        setTocVisibility: (show) => {
+            saveBool("TOC", show);
+            _setVisibility(loadNavigationState(), show);
+        },
+        setAllVisibility: (showNavigation, showTOC) => {
+            saveBool("NAVIGATION", showNavigation);
+            saveBool("TOC", showTOC);
+            _setVisibility(showNavigation, showTOC);
+        },
+        toggleNavigationVisibility: () => toggleVisibility(true, false),
+        toggleTocVisibility: () => toggleVisibility(false, true),
+        toggleAllVisibility: () => toggleVisibility(true, true)
+    };
+
+    // Run this immediately instead of waiting for page.onload to prevent page flicker
+    customDynamicStyle.innerHTML = setCombinedVisibility(loadNavigationState(), loadTocState());
+    // console.log("Debug: hide sidebar completed");
+
+    // SEE https://developer.mozilla.org/en-US/docs/Web/API/Document/DOMContentLoaded_event#checking_whether_loading_is_already_complete
+    if (document.readyState === "loading") {
+        // console.debug("Registering DOMContentLoaded event listener");
+        document.addEventListener("DOMContentLoaded", onPageLoadedAction);
+    } else {
+        // console.debug("DOMContentLoaded has already fired");
+        onPageLoadedAction();
+    }
+}());
+</script></head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#_1">
+          Перейти к содержанию
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow" data-md-component="header">
+<nav aria-label="Верхний колонтитул" class="md-header__inner md-grid">
+<a aria-label="My Own Architecture Style (MoAS)" class="md-header__button md-logo" data-md-component="logo" href="../.." title="My Own Architecture Style (MoAS)">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            My Own Architecture Style (MoAS)
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Стандартный процесс CI и CD
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to light theme" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to light theme">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"></path></svg>
+</label>
+<input aria-label="Switch to dark theme" class="md-option" data-md-color-accent="white" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="pink" data-md-color-scheme="default" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_2" hidden="" title="Switch to dark theme">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17 7H7a5 5 0 0 0-5 5 5 5 0 0 0 5 5h10a5 5 0 0 0 5-5 5 5 0 0 0-5-5m0 8a3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3 3 3 0 0 1-3 3"></path></svg>
+</label>
+<input aria-label="Switch to auto (OS settings)" class="md-option" data-md-color-accent="black" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="pink" data-md-color-scheme="slate" id="__palette_2" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to auto (OS settings)">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17 6H7c-3.31 0-6 2.69-6 6s2.69 6 6 6h10c3.31 0 6-2.69 6-6s-2.69-6-6-6m0 10H7c-2.21 0-4-1.79-4-4s1.79-4 4-4h10c2.21 0 4 1.79 4 4s-1.79 4-4 4M7 9c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Поиск" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Поиск" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Поиск" class="md-search__options">
+<button aria-label="Очистить" class="md-search__icon md-icon" tabindex="-1" title="Очистить" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/Luferov/architecture" title="Перейти к репозиторию">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 496 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    docs
+  </div>
+</a>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Навигация" class="md-nav md-nav--primary md-nav--integrated" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="My Own Architecture Style (MoAS)" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="My Own Architecture Style (MoAS)">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    My Own Architecture Style (MoAS)
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/Luferov/architecture" title="Перейти к репозиторию">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 496 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"></path></svg>
+</div>
+<div class="md-source__repository">
+    docs
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Системная архитектура веб приложений
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+<span class="md-ellipsis">
+    Архитектура
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            Архитектура
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../%D0%92%D0%B5%D0%BB%D0%B8%D0%BA%D0%BE%D0%BB%D0%B5%D0%BF%D0%BD%D1%8B%D0%B5%20%D1%82%D0%B5%D1%85%D0%BD%D0%BE%D0%BB%D0%BE%D0%B3%D0%B8%D0%B8/">
+<span class="md-ellipsis">
+    Великолепные технологии
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../%D0%A1%D0%BE%D0%B3%D0%BB%D0%B0%D1%88%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BE%D0%B1%20%D0%B8%D0%BC%D0%B5%D0%BD%D0%B0%D1%85%20REST%20API/">
+<span class="md-ellipsis">
+    Соглашения об именах REST API
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Стандартный процесс CI и CD
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Стандартный процесс CI и CD
+    
+  </span>
+</a>
+<nav aria-label="Содержание" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_1">
+<span class="md-ellipsis">
+      Процессы работы в командах
+    </span>
+</a>
+<nav aria-label="Процессы работы в командах" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#gitflow">
+<span class="md-ellipsis">
+      GitFlow
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#trunk_based_development">
+<span class="md-ellipsis">
+      Trunk based development
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#tbd_vs_gitflow">
+<span class="md-ellipsis">
+      Сравнение методологий TBD vs GitFlow
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#git">
+<span class="md-ellipsis">
+      Git стратегия и окружения
+    </span>
+</a>
+<nav aria-label="Git стратегия и окружения" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#dev_development">
+<span class="md-ellipsis">
+      Dev (Development / Среда разработки)
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#ift_integration_functional_testing">
+<span class="md-ellipsis">
+      IFT (Integration &amp; Functional Testing / Интеграционное и Функциональное тестирование)
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#pre_pre-production_staging">
+<span class="md-ellipsis">
+      Pre (Pre-Production / Staging / Предпродакшен)
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#prod_production">
+<span class="md-ellipsis">
+      Prod (Production / Продакшен, боевое окружение)
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_2">
+<span class="md-ellipsis">
+      Сводная таблица
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#cicd">
+<span class="md-ellipsis">
+      CI/CD
+    </span>
+</a>
+<nav aria-label="CI/CD" class="md-nav">
+<ul class="md-nav__list">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_3">
+<span class="md-ellipsis">
+      Стадия линтинга
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#_4">
+<span class="md-ellipsis">
+      Стадия тестирования
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#quality_gates">
+<span class="md-ellipsis">
+      Quality Gates
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#build">
+<span class="md-ellipsis">
+      Build
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_2_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+<span class="md-ellipsis">
+    Системная архитектура
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="false" aria-labelledby="__nav_2_4_label" class="md-nav" data-md-level="2">
+<label class="md-nav__title" for="__nav_2_4">
+<span class="md-nav__icon md-icon"></span>
+            Системная архитектура
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%BD%D0%B0%D1%8F%20%D0%B0%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0/%D0%90%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0%20%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9%20%D0%BD%D0%B0%20Python%20%28FastAPI%29/">
+<span class="md-ellipsis">
+    Архитектура приложений на Python (FastAPI)
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%BD%D0%B0%D1%8F%20%D0%B0%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0/%D0%90%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0%20%D1%84%D1%80%D0%BE%D0%BD%D1%82%D0%B5%D0%BD%D0%B4%20%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9%20%D0%BD%D0%B0%20%D0%BF%D0%BB%D0%B0%D1%82%D1%84%D0%BE%D1%80%D0%BC%D0%B5%20NextJS/">
+<span class="md-ellipsis">
+    Архитектура фронтенд приложений на платформе NextJS
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="https://github.com/Luferov/fast-clean">
+<span class="md-ellipsis">
+    Библиотека чистой архитектуры
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<a class="md-content__button md-icon" href="https://github.com/Luferov/architecture/edit/master/docs/Архитектура/Стандартный процесс CI и CD.md" rel="edit" title="Редактировать страницу">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.7 7c.4-.4.4-1 0-1.4l-2.3-2.3c-.4-.4-1-.4-1.4 0l-1.8 1.8L19 8.9M3 17.2V21h3.8l11-11.1-3.7-3.8zM7 2v3h3v2H7v3H5V7H2V5h3V2z"></path></svg>
+</a>
+<h1>Стандартный процесс CI и CD</h1>
+<h2 id="_1">Процессы работы в командах<a class="headerlink" href="#_1" title="Permanent link">¶</a></h2>
+<h3 id="gitflow">GitFlow<a class="headerlink" href="#gitflow" title="Permanent link">¶</a></h3>
+<p><em>GitFlow</em> — это определенная надстройка над моделью ветвления системы контроля версий <em>Git</em>, которая включает в себя использование фича веток и несколько основных веток. По сравнению с разработкой на основе «магистрали», <em>GitFlow</em> имеет многочисленные, более долгоживущие ветки и более крупные фиксации. Представляет собой строго регламентированную модель с фиксированными типами веток и четкими правилами их слияния. Идеальна для проектов с четким циклом выпуска версий (<em>release-based</em>), особенно если требуется параллельная поддержка нескольких версий продукта (например, v1.2, v2.0).
+<strong>Ключевые ветки:</strong>
+- <code>main</code>/<code>master</code>: Отражает состояние <em>production</em>-окружения. Каждый коммит с тегом — это новая версия.
+- <code>develop / development</code>: Основная ветка для интеграции новых функций. Отражает состояние, готовящееся к следующему релизу.
+- <code>feature/*</code>: Ветки, ответвляющиеся от <code>develop</code> для разработки новой функциональности. После завершения мержатся обратно в <code>develop</code>.
+- <code>release/*</code>: Ветка, ответвляющаяся от <code>develop</code> когда она готова к релизу. Здесь происходит только фиксинг багов, доработка документации и другие релизные активности. После готовности мержится в <code>main</code> и в <code>develop</code> (чтобы учесть все правки).
+- <code>hotfix/*</code>: Ветки, ответвляющиеся от <code>main</code> для срочного исправления бага в продакшене. Мержатся обратно в <code>main</code> и в <code>develop</code>.</p>
+<div class="mermaid">gitGraph
+    commit
+    branch develop
+    checkout develop
+    commit
+    commit
+    checkout main
+    merge develop
+    branch release/v0.1.0
+    checkout release/v0.1.0
+    commit
+    checkout develop
+    branch feature
+    checkout feature
+    commit
+    commit
+    checkout develop
+    merge feature
+    checkout main
+    merge develop
+    branch release/v0.2.0
+    checkout release/v0.2.0
+    commit
+</div>
+<p><strong>Плюсы:</strong>
+- <strong>Четкость и порядок:</strong> Все знают, куда и что мержить. Процесс предсказуем.
+- <strong>Стабильность <code>main</code>:</strong> Ветка <code>main</code> всегда содержит только проверенные релизы, что критично для enterprise-решений.
+- <strong>Параллельная разработка:</strong> Позволяет легко вести разработку новых функций (<code>develop</code>) одновременно с подготовкой текущего релиза (<code>release/*</code>) и экстренными правками (<code>hotfix/*</code>).
+<strong>Минусы:</strong>
+- <strong>Сложность:</strong> Большое количество долгоживущих веток. Постоянное поддержание актуальности <code>develop</code> и разрешение конфликтов может быть рутиной.
+- <strong>Низкая частота релизов:</strong> Процесс выпуска новой версии (<code>release/*</code> ветка) часто занимает время, что противоречит идеологии непрерывной поставки (<em>Continuous Delivery</em>).
+- <strong>Низкая скорость обратной связи:</strong> Функция считается "готовой" только когда попадает в долгоживущую ветку <code>develop</code>, а не в основную ветку.
+Описание работы по <em>GitFlow</em> описано в 2010 году Винсентом Дриссеном в <a href="https://nvie.com/posts/a-successful-git-branching-model/">статье</a>.</p>
+<div class="mermaid">graph LR
+    A[Разработчик пушит код] --&gt; B{Создается PR/MR}
+    B --&gt; C[Запуск CI: сборка, юнит-тесты]
+    C --&gt; D[Мерж в основную ветку]
+    D --&gt; E[Автодеплой на IFT]
+    E --&gt; F[Запуск интеграционных тестов]
+    F --&gt; G[Ручное QA-тестирование]
+    G --&gt; H[Деплой кандидата на релиз на PRE]
+    H --&gt; I[Нагрузочное тестирование / UAT]
+    I --&gt; J[Финальный Smoke-тест]
+    J --&gt; K[Ручной запуск деплоя на PROD]
+    K --&gt; L[Постепенный Rollout &amp; Мониторинг]
+</div>
+<p><em>CI</em>/<em>CD</em> <em>Pipeline</em> для <em>GitFlow</em> представлен на рисунке ниже.</p>
+<p><img alt="CI/CD по Git Flow" src="../../_assets/CICDGitFlow.svg"/></p>
+<h3 id="trunk_based_development">Trunk based development<a class="headerlink" href="#trunk_based_development" title="Permanent link">¶</a></h3>
+<p><em>TBD</em> - представляет собой облегченную методологию, где разработчики постоянно мержат небольшие инкрементальные изменения в одну главную ветку (<code>main</code>/<code>master</code>). Ключевые принципы — короткоживущие <em>feature</em>-ветки (не более 1-2 дней) и прямые коммиты в <code>main</code>.
+<strong>Ключевые принципы:</strong>
+- <strong>Одна главная ветка (<code>main/master</code>):</strong> Содержит всегда работоспособный код, готовый к развертыванию в production окружении.
+- <strong>Короткоживущие <em>feature</em>-ветки:</strong> Ветки создаются для разработки одной небольшой задачи и немедленно удаляются после мержа в <code>main</code>.
+- <strong>Частые мержи:</strong> Разработчики синхронизируются с <code>main/master</code> multiple times a day (путем rebase или merge), чтобы минимизировать расхождение кода и конфликты.
+- <strong>Необходимость мощного CI/CD:</strong> Обязательно требуется автоматизированный пайплайн, который для каждого коммита в <code>main</code> запускает полный набор тестов (<em>unit, integration, e2e</em>) и разворачивает сборку на staging-окружение. Без этого подход сложен в реализации.
+<div class="mermaid">gitGraph
+    commit
+    branch feature/ECOM-1122
+    checkout feature/ECOM-1122
+    commit
+    commit
+    checkout main
+    branch feature/ECOM-1234
+    checkout feature/ECOM-1234
+    commit
+    commit
+    checkout feature/ECOM-1122
+    commit
+    checkout main
+    merge feature/ECOM-1122 tag: "v0.1.0"
+    branch hotfix/ECOM-1122
+    checkout hotfix/ECOM-1122
+    commit
+    checkout main
+    merge hotfix/ECOM-1122 tag: "v0.1.1"
+    checkout feature/ECOM-1234
+    commit
+    checkout main
+    merge feature/ECOM-1234 tag: "v0.2.0"
+</div>
+<strong>Плюсы:</strong>
+- <strong>Скорость и частота поставки:</strong> Позволяет осуществлять деплой в <em>production multiple times a day</em> (<em>Continuous Deployment</em>).
+- <strong>Минимум конфликтов:</strong> Короткоживущие ветки и частые синхронизации с <code>main</code> <em>drastically reduce merge hell</em>.
+- <strong>Непрерывная интеграция:</strong> Проблемы интеграции выявляются сразу, а не в конце спринта или релиза.
+- <strong>Подходит для <em>DevOps</em>-культуры:</strong> Идеально ложится на практики <em>CI/CD</em> и автоматизации.
+<strong>Минусы:</strong>
+- <strong>Высокие требования к дисциплине:</strong> Требует высокой квалификации команды в написании тестируемого кода.
+- <strong>Зависимость от инфраструктуры:</strong> Без мощного и быстрого <em>CI/CD</em> пайплайна подход рискует стать неуправляемым.
+- <strong>Сложность для больших монолитов:</strong> Может быть сложно внедрить в legacy-проектах с плохим покрытием тестами.</p>
+<p><strong>Ключевые элементы успеха при TBD</strong>
+1. <strong>Культура ответственности:</strong> Разработчики не просто "закидывают код в main", они несут ответственность за его работу в проде.
+2. <strong>Feature Flags (Флаги функций):</strong> Позволяют мержать недоделанные функции в <code>main</code>, но держать их выключенными для пользователей. Включаются они позже, когда все готово. Это основа для декомпозиции больших задач.
+3. <strong>Мощный и быстрый CI/CD:</strong> Если тесты идут 4 часа, то частые мержи теряют смысл. Необходимо оптимизировать пайплайн для скорости.
+4. <strong>Инвестиции в тесты:</strong> Без надежной автоматической тестовой базы TBD превращается в хаос. Тесты — это ваша страховка.
+5. <strong>Превентивный мониторинг:</strong> Вы должны знать о проблеме раньше, чем ваши пользователи.</p>
+<p><em>CI</em>/<em>CI</em> <em>Pipeline</em> для <em>TDB</em> представлен на рисунке ниже.
+<img alt="docs/_assets/CICDTBD.svg" src="../../_assets/CICDTBD.svg"/></p>
+<h3 id="tbd_vs_gitflow">Сравнение методологий TBD vs GitFlow<a class="headerlink" href="#tbd_vs_gitflow" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Критерий</th>
+<th>Git Flow</th>
+<th>Trunk-Based Development</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Сложность</td>
+<td>Высокая</td>
+<td>Низкая (в реализации), Высокая (в дисциплине)</td>
+</tr>
+<tr>
+<td>Частота релизов</td>
+<td>Низкая/Средняя (релиз-<em>based</em>)</td>
+<td>Очень высокая (несколько в день)</td>
+</tr>
+<tr>
+<td>Поддержка <em>CI/CD</em></td>
+<td>Возможна, но не идеальна</td>
+<td><strong>Обязательна и является краеугольным камнем</strong></td>
+</tr>
+<tr>
+<td>Стабильность main</td>
+<td>Очень высокая</td>
+<td>Высокая (обеспечивается CI/CD)</td>
+</tr>
+<tr>
+<td>Параллельная разработка</td>
+<td>Отличная поддержка</td>
+<td>Хорошая</td>
+</tr>
+<tr>
+<td>Накладные расходы</td>
+<td>Высокие (управление ветками)</td>
+<td>Низкие</td>
+</tr>
+<tr>
+<td>Идеальные проекты</td>
+<td>Продукты с версиями, desktop/mobile ПО, enterprise-софт</td>
+<td>Веб-сервисы, стартапы, микросервисные архитектуры</td>
+</tr>
+</tbody>
+</table>
+<p>Выбор методологии по работе с системой контроля версий существенно влияет на реализацию <em>CI</em>/<em>CD</em> пайплайна.</p>
+<h2 id="git">Git стратегия и окружения<a class="headerlink" href="#git" title="Permanent link">¶</a></h2>
+<p>Традиционно существует 4 окружения:
+- DEV
+- IFT
+- PRE (Stage)
+- PROD</p>
+<h3 id="dev_development">Dev (Development / Среда разработки)<a class="headerlink" href="#dev_development" title="Permanent link">¶</a></h3>
+<p>Это окружение для разработчиков. Основная цель — создание нового кода, фикса багов и первичное тестирование отдельных функций в изоляции.
+Используется и и иногда тестировщики на ранних этапах.
+<strong>Что там происходит:</strong>
+- Пишется и компилируется новый код.
+- Проводятся быстрые unit-тесты (модульные тесты).
+- Отлаживается логика отдельного компонента или микросервиса.
+- Данные обычно "мусорные" (fake, mock) или на крайний случай — копия небольшой части реальных данных.  <br/>
+<strong>Ключевые характеристики:</strong> Максимально нестабильное, часто обновляется (по несколько раз в день), минимальные требования к инфраструктуре (может быть локальным на машине разработчика или в виде контейнера).</p>
+<h3 id="ift_integration_functional_testing">IFT (Integration &amp; Functional Testing / Интеграционное и Функциональное тестирование)<a class="headerlink" href="#ift_integration_functional_testing" title="Permanent link">¶</a></h3>
+<p><strong>Для чего необходимо:</strong> Это первая среда, где код от <em>всех</em> разработчиков собирается вместе. Главная цель — убедиться, что новые фичи и исправления корректно взаимодействуют друг с другом и не ломают существующую функциональность.
+Используется QA-инженерами (тестировщики), автоматизаторами, иногда используют продакты для демонстрации фич.
+<strong>Что там происходит:</strong>
+- <strong>Интеграционное тестирование:</strong> Проверяется взаимодействие между модулями, сервисами и базами данных.
+- <strong>Функциональное тестирование:</strong> Проверяется соответствие функционала техническому заданию (ТЗ).
+- Запускается набор автоматизированных регрессионных тестов.
+- Выполняется первичное тестирование производительности и нагрузки.
+<strong>Ключевые характеристики:</strong> Более стабильное, чем <em>Dev</em>. Обновляется по мере готовности функциональности (например, по завершении задачи в <em>Jira</em>). Данные близки к реальным, но все еще анонимизированы или сгенерированы.</p>
+<h3 id="pre_pre-production_staging">Pre (Pre-Production / Staging / Предпродакшен)<a class="headerlink" href="#pre_pre-production_staging" title="Permanent link">¶</a></h3>
+<p>Pre (Stage) окружение представляет собой <strong>полную и точную копия <em>Prod</em>-окружения</strong>. Его главная и единственная цель — финальная проверка всего: кода, конфигураций, скриптов развертывания и процедур перед выкаткой на реальных пользователей. Здесь ищут не баги в логике (это делалось на IFT), а любые расхождения с продакшеном.
+Используется <em>DevOps</em>-инженерами, <em>QA</em>, ведущие разработчики.
+<strong>Что там происходит:</strong>
+- <strong>Тестирование выпуска (Release Testing):</strong> Отрабатывается весь процесс деплоя, как на боевом сервере.
+- <strong>Дымовое тестирование (Smoke Testing):</strong> Быстрая проверка, что система после обновления "заводится".
+- <strong>Тестирование отката (Rollback Testing):</strong> Проверяется, что в случае неудачи можно быстро и безопасно откатиться на предыдущую версию.
+- <strong>Тестирование на соответствие безопасности (Security Hardening).</strong>
+<strong>Ключевые характеристики:</strong> Максимально стабильное. Обновляется только проверенными и протестированными на IFT сборками. Конфигурация, версии ОС, СУБД, кэшей и т.д. — <strong>идентичны Prod</strong>. Данные — максимально приближены к реальным, но всегда обезличены. </p>
+<h3 id="prod_production">Prod (Production / Продакшен, боевое окружение)<a class="headerlink" href="#prod_production" title="Permanent link">¶</a></h3>
+<p>Это среда, где работают реальные пользователи и происходят реальные бизнес-процессы. Цель — обеспечить стабильную, безопасную и высокопроизводительную работу сервиса.
+Служит для конечных пользователей, клиентов.</p>
+<p><strong>Что там происходит:</strong>
+- Работает бизнес.
+- Принимаются платежи, обрабатываются заказы, публикуется контент.
+- Мониторятся метрики производительности, ошибок и бизнес-показателей.
+- В идеале — применяются схемы плавного и бесшовного развертывания (синие-зеленые деплои, canary-релизы).</p>
+<p><strong>Ключевые характеристики:</strong> Абсолютная стабильность и безопасность. Изменения вносятся строго по регламенту, через проверенные процедуры, отработанные на <strong>Pre-окружении</strong>. Все данные — настоящие и критически важные.</p>
+<h3 id="_2">Сводная таблица<a class="headerlink" href="#_2" title="Permanent link">¶</a></h3>
+<table>
+<thead>
+<tr>
+<th>Окружение</th>
+<th>Цель</th>
+<th>Кто использует</th>
+<th>Стабильность</th>
+<th>Данные</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Dev</strong></td>
+<td>Разработка и первичное тестирование</td>
+<td>Разработчики</td>
+<td>Низкая</td>
+<td>Fake / Mock</td>
+</tr>
+<tr>
+<td><strong>IFT</strong></td>
+<td>Интеграция и функциональное тестирование</td>
+<td>QA, Автоматизаторы</td>
+<td>Средняя</td>
+<td>Обезличенные</td>
+</tr>
+<tr>
+<td><strong>Pre</strong></td>
+<td>Финальная репетиция релиза, тестирование окружения</td>
+<td>DevOps, QA</td>
+<td>Высокая</td>
+<td>Обезличенные, как в Prod</td>
+</tr>
+<tr>
+<td><strong>Prod</strong></td>
+<td>Работа с реальными пользователями</td>
+<td>Пользователи</td>
+<td>Максимальная</td>
+<td>Реальные, продакшен</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cicd">CI/CD<a class="headerlink" href="#cicd" title="Permanent link">¶</a></h2>
+<p>Процесс доставки исходного кода на окружения состоит из стадий (stage), которые в свою очередь могут состоять из этапов.</p>
+<h3 id="_3">Стадия линтинга<a class="headerlink" href="#_3" title="Permanent link">¶</a></h3>
+<p>Стадия <strong>линтеров</strong> в CI/CD – это первый барьер качества кода.<br/>
+Она запускается <strong>ещё до тестов и сборки</strong>, потому что быстрее всего отлавливает очевидные проблемы.
+Для чего нужны линтеры
+1. <strong>Единый стиль кода</strong>
+    - Автоматически проверяют форматирование, отступы, кавычки, длину строк (etc).
+    - Исключают «вкусовщину» в команде – все пишут одинаково.
+2. <strong>Предотвращение ошибок ещё до запуска программы</strong>
+    - Подсвечивают неиспользуемые переменные, забытые импорты, некорректный синтаксис.
+    - Для Python (flake8, mypy) – типовые ошибки или несовпадение типов.
+    - Для Dockerfile (hadolint) – неправильные инструкции, устаревшие практики.
+    - Для YAML (yamllint) – ошибки форматирования, которые могут «сломать» деплой.
+3. <strong>Снижение затрат на ревью</strong>
+    - Ревьюеры обсуждают архитектуру и логику, а не пробелы и кавычки.
+    - В PR остаётся только содержательная дискуссия.
+4. <strong>Ускорение пайплайна</strong>
+    - Линтеры работают за секунды.
+    - Если код не проходит линтеры, дальше не запускаются тесты/сборки → экономия ресурсов CI.
+<strong>Cтадия линтеров</strong> – это «санитар» кода. Она быстро и дёшево гарантирует, что дальше в пайплайн попадёт только чистый, читабельный и технически корректный код.</p>
+<h3 id="_4">Стадия тестирования<a class="headerlink" href="#_4" title="Permanent link">¶</a></h3>
+<p>Тесты в CI/CD проверяют <strong>функциональность кода</strong>, то есть то, что программа делает именно то, что задумано.
+Обычно тесты делятся на уровни:
+1. <strong>Unit-тесты</strong> – проверяют отдельные функции/методы.
+    - Быстрые, изолированные, дают понять, что базовая логика работает.
+2. <strong>Интеграционные тесты</strong> – проверяют взаимодействие компонентов: БД, API, очереди.
+    - Гарантируют, что модули «дружат» друг с другом.
+3. <strong>E2E (end-to-end) тесты</strong> – эмулируют сценарии пользователя (например, вход в систему, оформление заказа).
+    - Проверяют продукт целиком, как он будет вести себя «вживую».
+4. <strong>Регрессионные тесты</strong> – проверяют, что новые изменения не сломали старый функционал.</p>
+<p>Почему тесты идут <strong>после линтеров</strong>:
+1. <strong>Быстрее отловить очевидные ошибки</strong>
+    - Линтеры работают за секунды и не требуют запуска среды.
+    - Если код даже не соответствует базовым правилам (синтаксис, формат, опечатки), нет смысла гонять «тяжёлые» тесты.
+2. <strong>Экономия ресурсов CI</strong>
+    - Тесты могут занимать минуты, иногда десятки минут.
+    - Зачем тратить их, если уже на линтинге видно, что код не пройдёт?
+3. <strong>Чистый вход в тесты</strong>
+    - Тесты запускаются только на коде, который гарантированно читаем, структурирован и компилируется.
+    - Это уменьшает «шум» от ошибок (тесты падают не из-за пробела, а из-за логики).
+4. <strong>Лучшее разделение ответственности</strong>
+    - Линтер = статический анализ.
+    - Тесты = динамическая проверка поведения.
+    - Такой порядок даёт понятный pipeline: сначала чистим код, потом проверяем его работу.
+<strong>Важность стадии тестов</strong>
+- Уверенность, что новая логика работает как нужно.
+- Защита от багов, которые могут «утечь» на stage/preprod/prod.
+- Повышение стабильности продукта: каждый коммит проходит через фильтр качества.
+- Возможность смело рефакторить – тесты страхуют от поломок.</p>
+<h3 id="quality_gates">Quality Gates<a class="headerlink" href="#quality_gates" title="Permanent link">¶</a></h3>
+<p><em>Quality Gate</em> — это <strong>набор правил и метрик</strong>, которые код должен пройти, прежде чем пойти дальше по <em>CI</em>/<em>CD</em>. </p>
+<p>Примеры метрик:
+- <strong>Coverage</strong> (покрытие кода тестами, например ≥ 80%).
+- <strong>Нет критических багов/уязвимостей</strong> (по SonarQube/Trivy/Snyk).
+- <strong>Нет code smells</strong> или технического долга выше порога.
+- <strong>Нет утечек секретов</strong> (ключи, токены).</p>
+<p>Почему <em>quality gates</em> идут <strong>после тестов</strong>
+1. <strong>Основаны на результатах тестов</strong>
+    - Чтобы оценить покрытие кода тестами, сначала нужно их прогнать.
+    - Чтобы проверить регрессию (не сломалось ли что-то), нужны результаты запуска.
+2. <strong>Фильтр на “качество, а не только работоспособность”</strong>
+    - Тесты говорят: <em>“код работает”</em>.
+    - Quality gates добавляют: <em>“код работает <strong>и</strong> соответствует нашим стандартам качества”</em>.
+3. <strong>Экономия времени и ресурсов</strong>
+    - Если тесты упали, уже нет смысла считать coverage или смотреть SonarQube.
+    - Сначала убеждаемся, что система вообще “жива”, а потом проверяем её качество.
+4. <strong>Снижение технического долга</strong>
+    - Если запускать quality gates без тестов, то будет неполная картина.
+    - Например, код может пройти статический анализ, но при этом не иметь покрытия тестами.</p>
+<h3 id="build">Build<a class="headerlink" href="#build" title="Permanent link">¶</a></h3>
+<p>Стадия <strong><em>build</em></strong> — это шаг пайплайна, где из исходников получается артефакт, который можно запускать и деплоить.
+Зачем нужна стадия <em>build</em>:
+1. <strong>Единый артефакт для всех окружений</strong>
+    - Собираем один и тот же Docker-образ/бинарь/пакет.
+    - Дальше его выкатываем на stage → preprod → prod без пересборки.
+    - Это исключает баги “у меня локально работает”.
+2. <strong>Детерминированность</strong>
+    - Артефакт привязан к git commit или версии (SemVer).
+    - Можно откатиться, повторно задеплоить ту же версию, воспроизвести баг.
+3. <strong>Оптимизация и упаковка</strong>
+    - Компиляция (Go, Java, TypeScript → JS).
+    - Сборка Docker-образа (multi-stage: билд → рантайм).</p>
+</article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+</main>
+<footer class="md-footer">
+<nav aria-label="Нижний колонтитул" class="md-footer__inner md-grid">
+<a aria-label="Назад: Соглашения об именах REST API" class="md-footer__link md-footer__link--prev" href="../%D0%A1%D0%BE%D0%B3%D0%BB%D0%B0%D1%88%D0%B5%D0%BD%D0%B8%D1%8F%20%D0%BE%D0%B1%20%D0%B8%D0%BC%D0%B5%D0%BD%D0%B0%D1%85%20REST%20API/">
+<div class="md-footer__button md-icon">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</div>
+<div class="md-footer__title">
+<span class="md-footer__direction">
+                Назад
+              </span>
+<div class="md-ellipsis">
+                Соглашения об именах REST API
+              </div>
+</div>
+</a>
+<a aria-label="Вперед: Архитектура приложений на Python (FastAPI)" class="md-footer__link md-footer__link--next" href="../%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%BD%D0%B0%D1%8F%20%D0%B0%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0/%D0%90%D1%80%D1%85%D0%B8%D1%82%D0%B5%D0%BA%D1%82%D1%83%D1%80%D0%B0%20%D0%BF%D1%80%D0%B8%D0%BB%D0%BE%D0%B6%D0%B5%D0%BD%D0%B8%D0%B9%20%D0%BD%D0%B0%20Python%20%28FastAPI%29/">
+<div class="md-footer__title">
+<span class="md-footer__direction">
+                Вперед
+              </span>
+<div class="md-ellipsis">
+                Архитектура приложений на Python (FastAPI)
+              </div>
+</div>
+<div class="md-footer__button md-icon">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+</div>
+</a>
+</nav>
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["header.autohide", "navigation.path", "navigation.footer", "toc.integrate", "content.action.edit", "content.code.annotate", "content.code.select", "content.code.copy", "announce.dismiss"], "search": "../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.56ea9cef.min.js"></script>
+<script type="module">import mermaid from "https://unpkg.com/mermaid@10.4.0/dist/mermaid.esm.min.mjs";
+mermaid.initialize({});</script></body>
+</html>
