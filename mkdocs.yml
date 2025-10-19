@@ -54,6 +54,7 @@ extra:
 plugins:
   - search
   - awesome-nav
+  - mermaid2
   - toggle-sidebar:
       toggle_button: all
 
