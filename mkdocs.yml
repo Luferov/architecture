@@ -53,8 +53,8 @@ extra:
 
 plugins:
   - search
-  - awesome-nav
   - mermaid2
+  - awesome-nav
   - toggle-sidebar:
       toggle_button: all
 
@@ -71,7 +71,11 @@ markdown_extensions:
   - pymdownx.mark
   - pymdownx.caret
   - pymdownx.tilde
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:mermaid2.fence_mermaid
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
